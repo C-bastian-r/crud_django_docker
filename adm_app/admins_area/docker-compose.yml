@@ -1,0 +1,62 @@
+version: '3.9.19'
+
+services:
+  db:
+    image: postgres:16.3-alpine
+    environment:
+      POSTGRES_DB: admins
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 123456
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+    ports:
+      - "3066:5432"
+
+  server1:
+    build: .
+    entrypoint: /code/entrypoint.sh
+    volumes:
+      - static:/code/static
+      - .:/code
+    depends_on:
+      - db
+    networks:
+      - mynetwork
+    ports:
+      - "4444:8000"
+
+  server2:
+    build: .
+    volumes:
+      - static:/code/static
+      - .:/code
+    entrypoint: /code/entrypoint.sh
+    depends_on:
+      - db
+    networks:
+      - mynetwork
+    ports:
+      - "5555:8000"
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "9002:80"
+    volumes:
+      - ./config/nginx.conf:/etc/config/nginx.conf:ro
+      - static:/code/static
+    depends_on:
+      - server1
+      - server2
+    networks:
+      - mynetwork
+
+volumes:
+  postgres_data:
+  static:
+
+networks:
+  mynetwork:
+    driver: bridge
